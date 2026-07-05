@@ -18,5 +18,5 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-  base: '/coderatul-portfolio/' // Replace with your GitHub repo name
+  base: '/' // Since this will be the base directory
 }));
