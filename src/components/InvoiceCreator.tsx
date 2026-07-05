@@ -52,16 +52,11 @@ export function InvoiceCreator() {
 
 
   const [name, setName] = useState("");
-  const [rate, setRate] = useState(placeholderrate);
+  const [rate, setRate] = useState("");
   const [rows, setRows] = useState<Row[]>([newRow()]);
   const [billingaddress, setBillingAddress] = useState("")
 
-  var rate2 = rate
-  if (rate.includes('$')) {
-    rate2 = rate.replace('$', '');
-  }
-
-  const rateNum = parseFloat(rate2) || 0;
+  const rateNum = parseFloat(rate) || 120;
 
   const totals = useMemo(() => {
     let hours = 0;
