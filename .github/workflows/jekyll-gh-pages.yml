@@ -24,7 +24,7 @@ jobs:
       - name: Vite GitHub Pages Deployer
         uses: skywarth/vite-github-pages-deployer@v1.5.0
         with:
-          public_base_path: /  # This is the base
+          public_base_path: /coral-invoice-gen/  # This is the base
           build_path: ./dist
           install_phase_node_env: dev
           build_phase_node_env: production
