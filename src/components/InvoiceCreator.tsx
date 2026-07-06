@@ -371,6 +371,41 @@ export function InvoiceCreator() {
           </div>
         </section>
 
+        <Dialog open={warnOpen} onOpenChange={setWarnOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Some dates aren't in your selected weeks</DialogTitle>
+              <DialogDescription>
+                The following row{warnRows.length === 1 ? "" : "s"} fall outside every week you selected. Do you want to generate the invoice anyway?
+              </DialogDescription>
+            </DialogHeader>
+            <ul className="max-h-48 overflow-y-auto rounded-md border border-border bg-muted/30 p-3 text-sm">
+              {warnRows.map((r) => {
+                const t = HOUR_TYPES.find((x) => x.value === r.type);
+                return (
+                  <li key={r.id} className="py-0.5">
+                    <span className="font-medium">{r.date}</span> — {t?.label ?? r.type}
+                    {r.notes ? ` · ${r.notes}` : ""}
+                  </li>
+                );
+              })}
+            </ul>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setWarnOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  setWarnOpen(false);
+                  generatePdf();
+                }}
+              >
+                Generate anyway
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
         <footer className="mt-12 text-center text-xs text-muted-foreground">
           AI disclaimer - this page was generated using AI and edited by a human.
         </footer>
