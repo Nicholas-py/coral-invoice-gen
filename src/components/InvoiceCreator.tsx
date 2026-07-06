@@ -14,8 +14,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import logo from '../coral.png'
-import WeekMultiSelect from "./weekselect";
-import {SelectedWeek} from "./weekselect"
+import WeekMultiSelect, { isoWeekNumber } from "./weekselect";
+import { SelectedWeek } from "./weekselect"
+import { table } from "console";
 
 const HOUR_TYPES = [
   { value: "consult", label: "Consultation time", towardsmin: true },
@@ -32,6 +33,10 @@ type Row = {
   minutes: string;
   notes: string;
 };
+
+function round2(n:number):number {
+  return Math.round(100*n)/100
+}
 
 function newRow(): Row {
   return {
@@ -51,7 +56,7 @@ export function InvoiceCreator() {
   const placeholdername = "Fiona Lake Waslander"
   const placeholderrate = "120"
   const placeholderaddress = "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada"
-  document.body.style.zoom="125%"
+  document.body.style.zoom = "125%"
 
   const [invoiceWeeks, setInvoiceWeeks] = useState<SelectedWeek[]>([]);
 
@@ -71,7 +76,6 @@ export function InvoiceCreator() {
       amount += h;
     }
     amount = hours * rateNum
-    hours = Math.round(hours * 100) / 100
     return { hours, amount };
   }, [rows, rateNum]);
 
@@ -86,7 +90,7 @@ export function InvoiceCreator() {
   const generatePdf = () => {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = doc.internal.pageSize.getWidth();
-    var tabley = 170
+    var tabley = 185
 
     doc.setFont("times", "bold");
     doc.setFontSize(28);
@@ -99,15 +103,16 @@ export function InvoiceCreator() {
       }
     })
 
-    invoiceWeeks.forEach((week) => {
-      console.log(week)
-    })
 
     doc.setFont("times", "normal");
     doc.setFontSize(11);
     doc.text(`Date: ${mindate.toLocaleDateString(undefined, { timeZone: 'UTC' })}`, pageWidth - 40, 66, {
       align: "right",
     });
+    doc.text(`Rate: ${formatMoney(rateNum)}`, pageWidth - 40, 80, {
+      align: "right",
+    });
+
 
 
     doc.setFontSize(10);
@@ -149,11 +154,73 @@ export function InvoiceCreator() {
     doc.text("Coral Health Inc.", pageWidth / 2, 126);
     doc.text("1172 Sherbrooke St W, Montréal", pageWidth / 2, 142);
     doc.text("QC H3A 1H6, Canada", pageWidth / 2, 158);
+    var datecount = 0
+    var minhoursextra = 0
+    invoiceWeeks.forEach((week) => {
+      doc.text('Week ' + isoWeekNumber(week.end) + ' (' + week.start.toLocaleDateString() + ' - ' + week.end.toLocaleDateString() + ')', 40, tabley + 10)
+      doc.text(`Minimum Guaranteed Hours: ${week.minimumhours}`, pageWidth - 40, tabley + 10, {
+        align: "right",
+      });
 
-    autoTable(doc, {
-      startY: tabley,
-      head: [["Date", "Type", "Description", "Hours", "Rate", "Amount"]],
-      body: rows.map((r) => {
+      var hours: Record<string, number> = { 'consult': 0, 'train': 0, 'admin': 0 }
+      rows.forEach((row) => {
+        var date = new Date(row.date)
+        var day = date.getUTCDate()
+        var month = date.getUTCMonth()
+        var year = date.getUTCFullYear()
+        date.setDate(day)
+        date.setMonth(month)
+        date.setFullYear(year)
+        if (date >= week.start && date <= week.end) {
+          datecount++;
+          hours[row.type] += parseFloat(row.minutes)/60;
+        }
+      })
+
+      hours['consult'] = round2(hours['consult'])
+      hours['admin'] = round2(hours['admin'])
+      hours['train'] = round2(hours['train'])
+
+      var tabledata = [["Consultation Time",hours['consult']], 
+        ["Admin time outside of prep/post",hours['admin']],
+      ["Training time or info session", hours['train']]]
+
+      var hoursum = hours['consult']+hours['admin']+hours['train']
+
+      if (hours['consult']+hours['train'] < week.minimumhours) {
+        tabledata.push(["Additional hours from minimum guarantee", week.minimumhours-(hours['consult']+hours['train'])])
+        minhoursextra += week.minimumhours-(hours['consult']+hours['train'])
+        hoursum += week.minimumhours-(hours['consult']+hours['train'])
+      }
+
+      autoTable(doc, {
+        startY: tabley + 15,
+        head: [["Type", "Hours"]],
+        body: tabledata,
+        styles: { font: "times", fontSize: 10, cellPadding: 6 },
+        headStyles: { fillColor: [232, 197, 208], textColor: [60, 30, 40] },
+        alternateRowStyles: { fillColor: [252, 244, 247] },
+        columnStyles: {
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right" },
+        },
+      });
+
+      const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
+        .lastAutoTable.finalY;
+      doc.text(`Total: ${hoursum}`,pageWidth-40, finalY+12, {"align":"right"})
+      tabley = finalY + 30
+    })
+
+    if (datecount != rows.length) {
+      window.alert("ERROR! Some dates selected aren't included in any of the weeks selected. Please select more weeks.");
+      return
+
+    }
+
+
+    var tabledata = rows.map((r) => {
         const h = Math.round(parseFloat(r.minutes) / 60 * 100) / 100 || 0;
         const t = HOUR_TYPES.find((x) => x.value === r.type);
         const effectiveRate = rateNum;
@@ -162,10 +229,17 @@ export function InvoiceCreator() {
           t?.label ?? r.type,
           r.notes,
           h.toString(),
-          formatMoney(effectiveRate),
           formatMoney(h * effectiveRate),
         ];
-      }),
+      })
+    
+    if (minhoursextra > 0) {
+      tabledata.push(["","Additional hours from minimum guarantee","",minhoursextra.toString(),      formatMoney(rateNum*minhoursextra)])
+    } 
+    autoTable(doc, {
+      startY: tabley + 30,
+      head: [["Date", "Type", "Description", "Hours", "Amount"]],
+      body: tabledata,
       styles: { font: "times", fontSize: 10, cellPadding: 6 },
       headStyles: { fillColor: [232, 197, 208], textColor: [60, 30, 40] },
       alternateRowStyles: { fillColor: [252, 244, 247] },
@@ -180,11 +254,11 @@ export function InvoiceCreator() {
       .lastAutoTable.finalY;
     doc.setFont("times", "bold");
     doc.setFontSize(12);
-    doc.text(`Total hours: ${totals.hours}`, pageWidth - 40, finalY + 30, {
+    doc.text(`Total hours: ${Math.round(100*(totals.hours+minhoursextra))/100}`, pageWidth - 40, finalY + 30, {
       align: "right",
     });
     doc.setFontSize(16);
-    doc.text(`Total: ${formatMoney(totals.amount)}`, pageWidth - 40, finalY + 54, {
+    doc.text(`Total: ${formatMoney(totals.amount+minhoursextra*rateNum)}`, pageWidth - 40, finalY + 54, {
       align: "right",
     });
 
@@ -249,8 +323,8 @@ export function InvoiceCreator() {
             className="rounded-xl border border-border bg-card p-4 shadow-sm"
           >
             <WeekMultiSelect
-                    onChange={(ids, weeks) => setInvoiceWeeks(weeks)}
-                    >
+              onChange={(ids, weeks) => setInvoiceWeeks(weeks)}
+            >
 
             </WeekMultiSelect>
           </div>
@@ -354,14 +428,14 @@ export function InvoiceCreator() {
             <p className="text-lg uppercase tracking-widest text-muted-foreground">
               Total hours
             </p>
-            <p className="font-serif text-4xl">{totals.hours}</p>
+            <p className="font-serif text-4xl">{Math.round(totals.hours*100)/100}</p>
           </div>
           <div className="text-right">
             <p className="text-lg uppercase tracking-widest text-muted-foreground">
               Total due
             </p>
             <p className="font-serif text-4xl font-bold text-primary">
-              {formatMoney(totals.amount)}
+              {formatMoney(rateNum*totals.hours)}
             </p>
           </div>
           <div className="text-right">
@@ -375,7 +449,7 @@ export function InvoiceCreator() {
           AI disclaimer - this page was generated using AI and edited by a human.
         </footer>
         <footer className="mt-0 text-center text-xs text-muted-foreground">
-          ©2026 Nicholas Waslander   
+          ©2026 Nicholas Waslander
         </footer>
       </div>
     </div>

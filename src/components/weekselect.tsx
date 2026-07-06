@@ -30,9 +30,7 @@ interface MonthGroup {
 
 function startOfWeek(date: Date): Date {
     const d = new Date(date);
-    const day = d.getDay(); // 0 = Sun
-    d.setDate(d.getDate());
-    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getUTCDate());
     return d;
 }
 
@@ -42,7 +40,7 @@ function addWeeks(date: Date, n: number): Date {
     return d;
 }
 
-function isoWeekNumber(date: Date): number {
+export function isoWeekNumber(date: Date): number {
     const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
@@ -52,9 +50,15 @@ function isoWeekNumber(date: Date): number {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function fmtDay(d: Date): string {
-    return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+function fmtDayy(d: Date): string {
+    var yesterday = new Date(d.getTime()- 86400000);
+    return `${MONTHS[yesterday.getMonth()]} ${yesterday.getDate()}`;
 }
+function fmtDay(d: Date): string {
+    var yesterday = new Date(d.getTime());
+    return `${MONTHS[yesterday.getMonth()]} ${yesterday.getDate()}`;
+}
+
 
 function weekId(d: Date): string {
     return d.toISOString().slice(0, 10);
@@ -101,7 +105,7 @@ export default function WeekMultiSelect({
     onChange,
 }: WeekMultiSelectProps): React.ReactElement {
     const today = useMemo(() => new Date(), []);
-    const currentWeekStart = useMemo(() => startOfWeek(today), [today]);
+    const currentWeekStart = useMemo(() => today, [today]);
     const currentWeekId = weekId(currentWeekStart);
 
     // range of weeks currently materialized, expressed as offsets from current week
@@ -289,7 +293,7 @@ export default function WeekMultiSelect({
                                                     const val = parseFloat(e.target.value);
                                                     setHoursMap((prev) => ({ ...prev, [w.id]: isNaN(val) ? null : val }));
                                                 }}
-                                                placeholder="2"
+                                                placeholder="0"
                                             />
                                         </div>
                                         <div className="flex items-end justify-end md:col-span-1">
@@ -425,7 +429,7 @@ export default function WeekMultiSelect({
                                                         color: "#1c2333",
                                                     }}
                                                 >
-                                                    Week {w.weekNumber} · {fmtDay(w.start)} - {fmtDay(w.end)}
+                                                    Week {w.weekNumber} · {fmtDayy(w.start)} - {fmtDayy(w.end)}
                                                     {isCurrent && (
                                                         <span style={{ color: "#52001d", fontWeight: 700 }}> · This week</span>
                                                     )}
