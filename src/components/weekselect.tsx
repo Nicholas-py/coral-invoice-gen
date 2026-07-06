@@ -257,7 +257,7 @@ export default function WeekMultiSelect({
                     }}
                 >
                     {selectedList.length === 0 ? (
-                        <span style={{ color: "#8a93a3", fontSize: 14 }}>Select weeks… </span>
+                        <span style={{ color: "#8a93a3", fontSize: 14 }}>Select weeks…</span>
                     ) : (
                         <>
                             {selectedList.map((w) => (
