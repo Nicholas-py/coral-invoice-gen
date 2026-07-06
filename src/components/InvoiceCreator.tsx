@@ -14,6 +14,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import logo from '../coral.png'
+import WeekMultiSelect from "./weekselect";
+import {SelectedWeek} from "./weekselect"
 
 const HOUR_TYPES = [
   { value: "consult", label: "Consultation time", towardsmin: true },
@@ -49,7 +51,9 @@ export function InvoiceCreator() {
   const placeholdername = "Fiona Lake Waslander"
   const placeholderrate = "120"
   const placeholderaddress = "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada"
+  document.body.style.zoom="125%"
 
+  const [invoiceWeeks, setInvoiceWeeks] = useState<SelectedWeek[]>([]);
 
   const [name, setName] = useState("");
   const [rate, setRate] = useState("");
@@ -228,7 +232,26 @@ export function InvoiceCreator() {
           </div>
 
         </section>
+        <section className="mt-10">
+          <div className="mb-4 flex items-end justify-between">
+            <div>
+              <h2 className="font-serif text-2xl font-semibold">Weeks</h2>
+              <p className="text-sm text-muted-foreground">
+                Select the weeks the invoice is for.
+              </p>
+            </div>
+          </div>
+          <div
+            className="rounded-xl border border-border bg-card p-4 shadow-sm"
+          >
+            <WeekMultiSelect
+                    onChange={(ids, weeks) => setInvoiceWeeks(weeks)}
+                    >
 
+            </WeekMultiSelect>
+          </div>
+
+        </section>
         <section className="mt-10">
           <div className="mb-4 flex items-end justify-between">
             <div>
@@ -348,7 +371,7 @@ export function InvoiceCreator() {
           AI disclaimer - this page was generated using AI and edited by a human.
         </footer>
         <footer className="mt-0 text-center text-xs text-muted-foreground">
-          ©2026 Nicholas Waslander
+          ©2026 Nicholas Waslander   
         </footer>
       </div>
     </div>
