@@ -16,6 +16,14 @@ import {
 import logo from '../coral.png'
 import WeekMultiSelect from "./weekselect";
 import {SelectedWeek} from "./weekselect"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const HOUR_TYPES = [
   { value: "consult", label: "Consultation time", towardsmin: true },
@@ -47,6 +55,18 @@ function formatMoney(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "CAD" });
 }
 
+function fmtShort(d: Date) {
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", timeZone: "UTC" });
+}
+
+function rowDateInWeek(rowDate: string, w: SelectedWeek) {
+  if (!rowDate) return false;
+  const d = new Date(rowDate + "T00:00:00Z").getTime();
+  const start = new Date(Date.UTC(w.start.getFullYear(), w.start.getMonth(), w.start.getDate())).getTime();
+  const end = new Date(Date.UTC(w.end.getFullYear(), w.end.getMonth(), w.end.getDate(), 23, 59, 59)).getTime();
+  return d >= start && d <= end;
+}
+
 export function InvoiceCreator() {
   const placeholdername = "Fiona Lake Waslander"
   const placeholderrate = "120"
@@ -59,21 +79,54 @@ export function InvoiceCreator() {
   const [rate, setRate] = useState("");
   const [rows, setRows] = useState<Row[]>([newRow()]);
   const [billingaddress, setBillingAddress] = useState("")
+  const [warnOpen, setWarnOpen] = useState(false);
+  const [warnRows, setWarnRows] = useState<Row[]>([]);
 
   const rateNum = parseFloat(rate) || 120;
 
-  const totals = useMemo(() => {
-    let hours = 0;
-    let amount = 0;
+  const breakdown = useMemo(() => {
+    const groups = invoiceWeeks.map((w) => ({
+      week: w,
+      rows: [] as Row[],
+      hoursTowardMin: 0,
+      hoursOther: 0,
+    }));
+    const unassigned: Row[] = [];
     for (const r of rows) {
-      const h = parseFloat(r.minutes) || 0;
-      hours += h / 60;
-      amount += h;
+      const idx = invoiceWeeks.findIndex((w) => rowDateInWeek(r.date, w));
+      const h = (parseFloat(r.minutes) || 0) / 60;
+      const t = HOUR_TYPES.find((x) => x.value === r.type);
+      if (idx === -1) {
+        unassigned.push(r);
+      } else {
+        groups[idx].rows.push(r);
+        if (t?.towardsmin) groups[idx].hoursTowardMin += h;
+        else groups[idx].hoursOther += h;
+      }
     }
-    amount = hours * rateNum
-    hours = Math.round(hours * 100) / 100
-    return { hours, amount };
-  }, [rows, rateNum]);
+    const weekSummaries = groups.map((g) => {
+      const min = g.week.minimumhours || 0;
+      const billedTowardMin = Math.max(g.hoursTowardMin, min);
+      const billedHours = billedTowardMin + g.hoursOther;
+      const adjustment = billedTowardMin - g.hoursTowardMin;
+      return { ...g, billedHours, adjustment };
+    });
+    const unassignedHours = unassigned.reduce(
+      (s, r) => s + (parseFloat(r.minutes) || 0) / 60,
+      0,
+    );
+    const totalHours =
+      weekSummaries.reduce((s, g) => s + g.billedHours, 0) + unassignedHours;
+    return {
+      weekSummaries,
+      unassigned,
+      unassignedHours,
+      hours: Math.round(totalHours * 100) / 100,
+      amount: totalHours * rateNum,
+    };
+  }, [rows, invoiceWeeks, rateNum]);
+
+  const totals = { hours: breakdown.hours, amount: breakdown.amount };
 
   const updateRow = (id: string, patch: Partial<Row>) => {
     setRows((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
@@ -82,6 +135,20 @@ export function InvoiceCreator() {
   const addRow = () => setRows((prev) => [...prev, newRow()]);
   const removeRow = (id: string) =>
     setRows((prev) => (prev.length === 1 ? prev : prev.filter((r) => r.id !== id)));
+
+  const handleGenerate = () => {
+    if (invoiceWeeks.length > 0) {
+      const bad = rows.filter(
+        (r) => r.date && !invoiceWeeks.some((w) => rowDateInWeek(r.date, w)),
+      );
+      if (bad.length > 0) {
+        setWarnRows(bad);
+        setWarnOpen(true);
+        return;
+      }
+    }
+    generatePdf();
+  };
 
   const generatePdf = () => {
     const doc = new jsPDF({ unit: "pt", format: "a4" });
@@ -176,8 +243,60 @@ export function InvoiceCreator() {
       },
     });
 
-    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
+    let finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
       .lastAutoTable.finalY;
+
+    if (breakdown.weekSummaries.length > 0) {
+      doc.setFont("times", "bold");
+      doc.setFontSize(14);
+      doc.text("Week-by-week breakdown", 40, finalY + 30);
+
+      const body: (string | number)[][] = [];
+      breakdown.weekSummaries.forEach((g) => {
+        const label = `Week of ${fmtShort(g.week.start)} - ${fmtShort(g.week.end)}`;
+        const worked = Math.round((g.hoursTowardMin + g.hoursOther) * 100) / 100;
+        const min = g.week.minimumhours || 0;
+        const billed = Math.round(g.billedHours * 100) / 100;
+        const adj = Math.round(g.adjustment * 100) / 100;
+        body.push([
+          label,
+          worked.toString(),
+          min ? min.toString() : "—",
+          adj > 0 ? `+${adj}` : "0",
+          billed.toString(),
+          formatMoney(billed * rateNum),
+        ]);
+      });
+      if (breakdown.unassigned.length > 0) {
+        const hrs = Math.round(breakdown.unassignedHours * 100) / 100;
+        body.push([
+          "Outside selected weeks",
+          hrs.toString(),
+          "—",
+          "0",
+          hrs.toString(),
+          formatMoney(hrs * rateNum),
+        ]);
+      }
+      autoTable(doc, {
+        startY: finalY + 40,
+        head: [["Week", "Worked", "Min guar.", "Min adj.", "Billed hrs", "Amount"]],
+        body,
+        styles: { font: "times", fontSize: 10, cellPadding: 6 },
+        headStyles: { fillColor: [232, 197, 208], textColor: [60, 30, 40] },
+        alternateRowStyles: { fillColor: [252, 244, 247] },
+        columnStyles: {
+          1: { halign: "right" },
+          2: { halign: "right" },
+          3: { halign: "right" },
+          4: { halign: "right" },
+          5: { halign: "right" },
+        },
+      });
+      finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
+        .lastAutoTable.finalY;
+    }
+
     doc.setFont("times", "bold");
     doc.setFontSize(12);
     doc.text(`Total hours: ${totals.hours}`, pageWidth - 40, finalY + 30, {
@@ -365,7 +484,7 @@ export function InvoiceCreator() {
             </p>
           </div>
           <div className="text-right">
-            <Button size="lg" onClick={generatePdf} className="mt-2">
+            <Button size="lg" onClick={handleGenerate} className="mt-2">
               <FileDown className="mr-2 h-5 w-5" /> Generate Invoice
             </Button>
           </div>
