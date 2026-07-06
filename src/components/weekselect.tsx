@@ -19,7 +19,7 @@ interface Week {
     weekNumber: number;
     monthKey: string;
     monthLabel: string;
-    minimumhours: Number | null;
+    minimumhours: number | null;
 }
 
 interface MonthGroup {
@@ -107,7 +107,7 @@ export default function WeekMultiSelect({
     // range of weeks currently materialized, expressed as offsets from current week
     const [rangeStart, setRangeStart] = useState<number>(-CHUNK * 2);
     const [rangeEnd, setRangeEnd] = useState<number>(CHUNK * 2);
-    const [mingh, setMinGH] = useState([])
+    const [hoursMap, setHoursMap] = useState<Record<string, number | null>>({});
 
     const weeks = useMemo<Week[]>(() => {
         const arr: Week[] = [];
@@ -194,10 +194,31 @@ export default function WeekMultiSelect({
 
     const selectedList = useMemo<Week[]>(() => {
         return Array.from(selected)
-            .map((id) => buildWeek(new Date(id)))
+            .map((id) => {
+                const w = buildWeek(new Date(id));
+                return { ...w, minimumhours: hoursMap[id] ?? null };
+            })
             .sort((a, b) => a.start.getTime() - b.start.getTime());
-    }, [selected]);
+    }, [selected, hoursMap]);
 
+    const onChangeRef = useRef(onChange);
+    useEffect(() => {
+        onChangeRef.current = onChange;
+    }); // no deps — runs after every render, just updates the ref
+
+    // report changes to the parent — only depends on selectedList now
+    useEffect(() => {
+        if (!onChangeRef.current) return;
+        const ids = selectedList.map((w) => w.id);
+        const weeksOut: SelectedWeek[] = selectedList.map((w) => ({
+            id: w.id,
+            start: w.start,
+            end: w.end,
+            weekNumber: w.weekNumber,
+            minimumhours: w.minimumhours ?? 0,
+        }));
+        onChangeRef.current(ids, weeksOut);
+    }, [selectedList]); // <-- no onChange here
 
     return (
         <div
@@ -241,8 +262,7 @@ export default function WeekMultiSelect({
                         <>
                             {selectedList.map((w) => (
                                 <div>
-                                    <div className="grid grid-cols-0 gap-3 md:grid-cols-6" style={{
-                                        border: '1px solid #900043',
+                                    <div className="grid grid-cols-0 gap-3 md:grid-cols-6 border border-border shadow-sm" style={{
                                         borderRadius: 10,
                                         padding: "0px 0px 6px 0px",
 
@@ -266,8 +286,8 @@ export default function WeekMultiSelect({
                                                 inputMode="decimal"
                                                 value={w.minimumhours?.toString()}
                                                 onChange={(e) => {
-                                                    w.minimumhours = parseFloat(e.target.value);
-                                                    setMinGH([]);
+                                                    const val = parseFloat(e.target.value);
+                                                    setHoursMap((prev) => ({ ...prev, [w.id]: isNaN(val) ? null : val }));
                                                 }}
                                                 placeholder="2"
                                             />
@@ -387,9 +407,8 @@ export default function WeekMultiSelect({
                                                 padding: "8px 12px",
                                                 cursor: "pointer",
                                                 background: isSelected ? "#fff0f0" : "transparent",
-                                                borderLeft: isCurrent
-                                                    ? "3px solid #52001d"
-                                                    : "3px solid transparent",
+                                                borderLeft:
+                                                    "3px solid transparent",
                                             }}
                                             onMouseEnter={(e) => {
                                                 if (!isSelected) e.currentTarget.style.background = "#f7f8fa";

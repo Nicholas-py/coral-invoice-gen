@@ -99,6 +99,10 @@ export function InvoiceCreator() {
       }
     })
 
+    invoiceWeeks.forEach((week) => {
+      console.log(week)
+    })
+
     doc.setFont("times", "normal");
     doc.setFontSize(11);
     doc.text(`Date: ${mindate.toLocaleDateString(undefined, { timeZone: 'UTC' })}`, pageWidth - 40, 66, {
