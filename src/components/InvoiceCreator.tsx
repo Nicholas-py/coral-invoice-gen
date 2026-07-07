@@ -52,6 +52,10 @@ function formatMoney(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "CAD" });
 }
 
+function showDate(d:Date):string {
+  return d.toLocaleDateString(undefined, { timeZone: 'UTC' })
+}
+
 export function InvoiceCreator() {
   const placeholdername = "Fiona Lake Waslander"
   const placeholderrate = "120"
@@ -110,7 +114,7 @@ export function InvoiceCreator() {
 
     doc.setFont("times", "normal");
     doc.setFontSize(11);
-    doc.text(`Date: ${mindate.toLocaleDateString(undefined, { timeZone: 'UTC' })}`, pageWidth - 40, 66, {
+    doc.text(`Date: ${showDate(mindate)}`, pageWidth - 40, 66, {
       align: "right",
     });
     doc.text(`Rate: ${formatMoney(rateNum)}`, pageWidth - 40, 80, {
@@ -161,7 +165,7 @@ export function InvoiceCreator() {
     var datecount = 0
     var minhoursextra = 0
     invoiceWeeks.forEach((week) => {
-      doc.text('Week ' + isoWeekNumber(week.end) + ' (' + week.start.toLocaleDateString() + ' - ' + week.end.toLocaleDateString() + ')', 40, tabley + 10)
+      doc.text('Week ' + isoWeekNumber(week.end) + ' (' + showDate(week.start) + ' - ' + showDate(week.end) + ')', 40, tabley + 10)
       doc.text(`Minimum Guaranteed Hours: ${week.minimumhours}`, pageWidth - 40, tabley + 10, {
         align: "right",
       });
@@ -169,12 +173,6 @@ export function InvoiceCreator() {
       var hours: Record<string, number> = { 'consult': 0, 'train': 0, 'admin': 0 }
       rows.forEach((row) => {
         var date = new Date(row.date)
-        var month = date.getUTCMonth()
-        var day = date.getUTCDate()
-        var year = date.getUTCFullYear()
-        date.setMonth(month)
-        date.setDate(day)
-        date.setFullYear(year)
         if (date >= week.start && date <= week.end) {
           datecount++;
           hours[row.type] += (parseFloat(row.minutes)||0)/60;
@@ -237,7 +235,14 @@ export function InvoiceCreator() {
 
 
     doc.addPage();
-
+    rows.sort((x,y)=>{
+      const t1 = new Date(x.date).getTime();
+      const t2= new Date(y.date).getTime()
+      if (t1 > t2) return 1;
+      if (t1 < t2) return -1
+      return 0
+    })
+    console.log(rows)
     var tabledata = rows.map((r) => {
         const h = Math.round(parseFloat(r.minutes) * 100) / 100 || 0;
         const t = HOUR_TYPES.find((x) => x.value === r.type);
@@ -250,7 +255,6 @@ export function InvoiceCreator() {
           formatMoney(h/60 * effectiveRate),
         ];
       })
-    
     autoTable(doc, {
       startY: 30,
       head: [["Date", "Type", "Description", "Minutes", "Amount"]],

@@ -30,7 +30,11 @@ interface MonthGroup {
 
 function startOfWeek(date: Date): Date {
     const d = new Date(date);
-    d.setDate(d.getUTCDate());
+    var day = d.getDay();
+    for (let i = 0; i < day; i++) {
+        d.setDate(d.getDate()-1)
+    }
+    d.setHours(0)
     return d;
 }
 
@@ -45,18 +49,13 @@ export function isoWeekNumber(date: Date): number {
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
-    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+    return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 +1) / 7);
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function fmtDayy(d: Date): string {
-    var yesterday = new Date(d.getTime() - 86400000);
-    return `${MONTHS[yesterday.getMonth()]} ${yesterday.getDate()}`;
-}
 function fmtDay(d: Date): string {
-    var yesterday = new Date(d.getTime());
-    return `${MONTHS[yesterday.getMonth()]} ${yesterday.getDate()}`;
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
 }
 
 
@@ -81,7 +80,7 @@ function buildWeek(start: Date): Week {
         start,
         end,
         weekNumber: isoWeekNumber(end),
-        monthKey: `${end.getFullYear()}-${end.getMonth()}`,
+        monthKey: `${start.getFullYear()}-${start.getMonth()}`,
         monthLabel: `${end.toLocaleString("default", { month: "long" })} ${end.getFullYear()}`,
         minimumhours: null
     };
@@ -105,7 +104,7 @@ export default function WeekMultiSelect({
     onChange,
 }: WeekMultiSelectProps): React.ReactElement {
     const today = useMemo(() => new Date(), []);
-    const currentWeekStart = useMemo(() => today, [today]);
+    const currentWeekStart = useMemo(() => startOfWeek(today), [today]);
     const currentWeekId = weekId(currentWeekStart);
 
     // range of weeks currently materialized, expressed as offsets from current week
@@ -189,7 +188,7 @@ export default function WeekMultiSelect({
                 const nr = r - CHUNK;
                 requestAnimationFrame(() => {
                     const newHeight = el.scrollHeight;
-                    el.scrollTop += newHeight - prevHeight;
+                    //el.scrollTop += newHeight - prevHeight;
                 });
                 return nr;
             });
@@ -435,7 +434,7 @@ export default function WeekMultiSelect({
                                                         color: "#1c2333",
                                                     }}
                                                 >
-                                                    Week {w.weekNumber} · {fmtDayy(w.start)} - {fmtDayy(w.end)}
+                                                    Week {w.weekNumber} · {fmtDay(w.start)} - {fmtDay(w.end)}
                                                     {isCurrent && (
                                                         <span style={{ color: "#52001d", fontWeight: 700 }}> · This week</span>
                                                     )}
