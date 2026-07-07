@@ -56,7 +56,11 @@ export function InvoiceCreator() {
   const placeholdername = "Fiona Lake Waslander"
   const placeholderrate = "120"
   const placeholderaddress = "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada"
-  document.body.style.zoom = "125%"
+  document.body.style.transform = "scale(1.25)";
+  document.body.style.transformOrigin = "top left";
+  document.body.style.width = "80%";   // 100 / 1.25
+  document.body.style.minHeight = "80vh";
+
 
   const [invoiceWeeks, setInvoiceWeeks] = useState<SelectedWeek[]>([]);
 
@@ -165,15 +169,15 @@ export function InvoiceCreator() {
       var hours: Record<string, number> = { 'consult': 0, 'train': 0, 'admin': 0 }
       rows.forEach((row) => {
         var date = new Date(row.date)
-        var day = date.getUTCDate()
         var month = date.getUTCMonth()
+        var day = date.getUTCDate()
         var year = date.getUTCFullYear()
-        date.setDate(day)
         date.setMonth(month)
+        date.setDate(day)
         date.setFullYear(year)
         if (date >= week.start && date <= week.end) {
           datecount++;
-          hours[row.type] += parseFloat(row.minutes)/60;
+          hours[row.type] += (parseFloat(row.minutes)||0)/60;
         }
       })
 
@@ -209,7 +213,7 @@ export function InvoiceCreator() {
 
       const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
         .lastAutoTable.finalY;
-      doc.text(`Total: ${hoursum}`,pageWidth-40, finalY+12, {"align":"right"})
+      doc.text(`Week ${isoWeekNumber(week.start)} total hours: ${hoursum}`,pageWidth-40, finalY+12, {"align":"right"})
       tabley = finalY + 30
     })
 
@@ -218,10 +222,24 @@ export function InvoiceCreator() {
       return
 
     }
+    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
+      .lastAutoTable.finalY;
+    doc.setFont("times", "bold");
+    doc.setFontSize(12);
+    doc.text(`Total hours: ${Math.round(100*(totals.hours+minhoursextra))/100}`, pageWidth - 40, finalY + 50, {
+      align: "right",
+    });
+    doc.setFontSize(16);
+    doc.text(`Total hours: ${formatMoney(totals.amount+minhoursextra*rateNum)}`, pageWidth - 40, finalY + 74, {
+      align: "right",
+    });
 
+
+
+    doc.addPage();
 
     var tabledata = rows.map((r) => {
-        const h = Math.round(parseFloat(r.minutes) / 60 * 100) / 100 || 0;
+        const h = Math.round(parseFloat(r.minutes) * 100) / 100 || 0;
         const t = HOUR_TYPES.find((x) => x.value === r.type);
         const effectiveRate = rateNum;
         return [
@@ -229,16 +247,13 @@ export function InvoiceCreator() {
           t?.label ?? r.type,
           r.notes,
           h.toString(),
-          formatMoney(h * effectiveRate),
+          formatMoney(h/60 * effectiveRate),
         ];
       })
     
-    if (minhoursextra > 0) {
-      tabledata.push(["","Additional hours from minimum guarantee","",minhoursextra.toString(),      formatMoney(rateNum*minhoursextra)])
-    } 
     autoTable(doc, {
-      startY: tabley + 30,
-      head: [["Date", "Type", "Description", "Hours", "Amount"]],
+      startY: 30,
+      head: [["Date", "Type", "Description", "Minutes", "Amount"]],
       body: tabledata,
       styles: { font: "times", fontSize: 10, cellPadding: 6 },
       headStyles: { fillColor: [232, 197, 208], textColor: [60, 30, 40] },
@@ -250,19 +265,8 @@ export function InvoiceCreator() {
       },
     });
 
-    const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
-      .lastAutoTable.finalY;
-    doc.setFont("times", "bold");
-    doc.setFontSize(12);
-    doc.text(`Total hours: ${Math.round(100*(totals.hours+minhoursextra))/100}`, pageWidth - 40, finalY + 30, {
-      align: "right",
-    });
-    doc.setFontSize(16);
-    doc.text(`Total: ${formatMoney(totals.amount+minhoursextra*rateNum)}`, pageWidth - 40, finalY + 54, {
-      align: "right",
-    });
-
-    doc.save(`Invoice_${mindate.toLocaleDateString(undefined, { timeZone: 'UTC' })}.pdf`);
+    var datestring = `${mindate.getFullYear()}.${mindate.getMonth() < 10 ? "0" : ""}${mindate.getMonth()}.${mindate.getDate() < 10 ? "0" : ""}${mindate.getDate()}`
+    doc.save(`${datestring} ${name||placeholdername} Invoice.pdf`);
   };
 
   return (
@@ -422,25 +426,10 @@ export function InvoiceCreator() {
             </div>
           </div>
         </section>
-
-        <section className="mt-10 flex flex-col items-end gap-6 rounded-2xl border border-border bg-accent/40 p-6">
-          <div className="text-right">
-            <p className="text-lg uppercase tracking-widest text-muted-foreground">
-              Total hours
-            </p>
-            <p className="font-serif text-4xl">{Math.round(totals.hours*100)/100}</p>
-          </div>
-          <div className="text-right">
-            <p className="text-lg uppercase tracking-widest text-muted-foreground">
-              Total due
-            </p>
-            <p className="font-serif text-4xl font-bold text-primary">
-              {formatMoney(rateNum*totals.hours)}
-            </p>
-          </div>
-          <div className="text-right">
+        <section className="mx-auto mt-10 flex w-full max-w-sm flex-col items-center gap-6 rounded-2xl border border-border bg-accent/40 p-6">
+          <div className="text-left">
             <Button size="lg" onClick={generatePdf} className="mt-2">
-              <FileDown className="mr-2 h-5 w-5" /> Generate Invoice
+              <FileDown className="h-7 w-7" /> Generate Invoice
             </Button>
           </div>
         </section>

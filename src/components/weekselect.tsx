@@ -51,7 +51,7 @@ export function isoWeekNumber(date: Date): number {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function fmtDayy(d: Date): string {
-    var yesterday = new Date(d.getTime()- 86400000);
+    var yesterday = new Date(d.getTime() - 86400000);
     return `${MONTHS[yesterday.getMonth()]} ${yesterday.getDate()}`;
 }
 function fmtDay(d: Date): string {
@@ -259,9 +259,11 @@ export default function WeekMultiSelect({
                         flex: 1,
                         minWidth: 0,
                     }}
+
                 >
                     {selectedList.length === 0 ? (
-                        <span style={{ color: "#8a93a3", fontSize: 14 }}>Select weeks…</span>
+                        <span style={{ color: "#8a93a3", fontSize: 14 }}
+                        >Select weeks…</span>
                     ) : (
                         <>
                             {selectedList.map((w) => (
@@ -271,10 +273,14 @@ export default function WeekMultiSelect({
                                         padding: "0px 0px 6px 0px",
 
                                     }}
+                                        onClick={(e) => {
+                                            if (selectedList.length > 0) e.stopPropagation();
+                                        }}
+
                                     >
                                         <div className="md:col-span-2">
                                             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                                                Week
+                                                Week {isoWeekNumber(w.start)}
                                             </Label>
                                             <p>
                                                 {fmtDay(w.start)} - {w.start.getMonth() == w.end.getMonth() ? w.end.getDate() : fmtDay(w.end)}
