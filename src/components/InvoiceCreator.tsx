@@ -252,12 +252,11 @@ export function InvoiceCreator() {
           t?.label ?? r.type,
           r.notes,
           h.toString(),
-          formatMoney(h/60 * effectiveRate),
         ];
       })
     autoTable(doc, {
       startY: 30,
-      head: [["Date", "Type", "Description", "Minutes", "Amount"]],
+      head: [["Date", "Type", "Description", "Minutes"]],
       body: tabledata,
       styles: { font: "times", fontSize: 10, cellPadding: 6 },
       headStyles: { fillColor: [232, 197, 208], textColor: [60, 30, 40] },
