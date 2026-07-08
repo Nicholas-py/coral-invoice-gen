@@ -14,28 +14,52 @@ import {
 // ---- types --------------------------------------------------------------
 interface Week {
     id: string;
-    start: Date;
-    end: Date;
+    start: RawDate;
+    end: RawDate;
     weekNumber: number;
     monthKey: string;
     monthLabel: string;
     minimumhours: number | null;
 }
 
+export type RawDate = {
+    day: number;
+    month: number;
+    year: number
+}
+
 interface MonthGroup {
     label: string;
     items: Week[];
 }
+
+export interface SelectedWeek {
+    id: string; // ISO date string of the Monday that starts the week, e.g. "2026-06-29"
+    start: RawDate;
+    end: RawDate;
+    weekNumber: number;
+    minimumhours: number;
+}
+
 // ---- date helpers -----------------------------------------------------
 
-function startOfWeek(date: Date): Date {
-    const d = new Date(date);
+export function toRawDate(d:Date):RawDate {
+    return {
+        day:d.getDate(),
+        month:d.getMonth(),
+        year:d.getFullYear()
+    }
+}
+
+
+function startOfWeek(date: RawDate): RawDate {
+    const d = new Date(0);
+    d.setFullYear(date.year, date.month, date.day)
     var day = d.getDay();
     for (let i = 0; i < day; i++) {
         d.setDate(d.getDate()-1)
     }
-    d.setHours(0)
-    return d;
+    return toRawDate(d);
 }
 
 function addWeeks(date: Date, n: number): Date {
@@ -44,8 +68,8 @@ function addWeeks(date: Date, n: number): Date {
     return d;
 }
 
-export function isoWeekNumber(date: Date): number {
-    const d = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+export function isoWeekNumber(date: RawDate): number {
+    const d = new Date(Date.UTC(date.year, date.month, date.day));
     const dayNum = d.getUTCDay() || 7;
     d.setUTCDate(d.getUTCDate() + 4 - dayNum);
     const yearStart = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
@@ -54,33 +78,48 @@ export function isoWeekNumber(date: Date): number {
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
-function fmtDay(d: Date): string {
-    return `${MONTHS[d.getMonth()]} ${d.getDate()}`;
+function fmtDay(d: RawDate): string {
+    return `${MONTHS[d.month]} ${d.day}`;
+}
+
+export function pRawDate(d:RawDate): string {
+    return `${d.day < 10 ? "0":""}${d.day}/${d.month+1 < 10 ? "0":""}${d.month+1}/${d.year}`
+}
+
+export function rawdatesort(a:RawDate, b:RawDate):number {
+    var an = a.year*10000+a.month*100+a.day;
+    var bn = b.year*10000+b.month*100+b.day;
+    return an - bn
+}
+
+export function isnewer(newer:RawDate, older:RawDate):boolean {
+    var an = older.year*10000+older.month*100+older.day;
+    var bn = newer.year*10000+newer.month*100+newer.day;
+    return an < bn
+}
+
+export function isnewerorequal(newer:RawDate, older:RawDate):boolean {
+    var an = older.year*10000+older.month*100+older.day;
+    var bn = newer.year*10000+newer.month*100+newer.day;
+    return an <= bn
 }
 
 
-function weekId(d: Date): string {
-    return d.toISOString().slice(0, 10);
-}
-
-export interface SelectedWeek {
-    id: string; // ISO date string of the Monday that starts the week, e.g. "2026-06-29"
-    start: Date;
-    end: Date;
-    weekNumber: number;
-    minimumhours: number;
+function weekId(d: RawDate): string {
+    return pRawDate(d);
 }
 
 
-function buildWeek(start: Date): Week {
-    const end = addWeeks(start, 1);
+function buildWeek(start: RawDate): Week {
+    const end = addWeeks(toDateTime(start), 1);
     end.setDate(end.getDate() - 1);
+    const rawEnd = toRawDate(end);
     return {
         id: weekId(start),
-        start,
-        end,
-        weekNumber: isoWeekNumber(end),
-        monthKey: `${start.getFullYear()}-${start.getMonth()}`,
+        start: start,
+        end: rawEnd,
+        weekNumber: isoWeekNumber(rawEnd),
+        monthKey: `${start.year}-${start.month}`,
         monthLabel: `${end.toLocaleString("default", { month: "long" })} ${end.getFullYear()}`,
         minimumhours: null
     };
@@ -94,6 +133,12 @@ export interface WeekMultiSelectProps {
     onChange?: (ids: string[], weeks: SelectedWeek[]) => void;
 }
 
+export function toDateTime(d:RawDate): Date {
+    var d2 = new Date(0)
+    d2.setFullYear(d.year, d.month, d.day)
+    return d2
+}
+
 const CHUNK = 26; // weeks per lazy-load batch (~6 months)
 
 // ---- component ----------------------------------------------------------
@@ -103,9 +148,11 @@ export default function WeekMultiSelect({
     defaultValue,
     onChange,
 }: WeekMultiSelectProps): React.ReactElement {
-    const today = useMemo(() => new Date(), []);
+    const today = useMemo(() => toRawDate(new Date()), []);
     const currentWeekStart = useMemo(() => startOfWeek(today), [today]);
     const currentWeekId = weekId(currentWeekStart);
+    
+
 
     // range of weeks currently materialized, expressed as offsets from current week
     const [rangeStart, setRangeStart] = useState<number>(-CHUNK * 2);
@@ -115,7 +162,7 @@ export default function WeekMultiSelect({
     const weeks = useMemo<Week[]>(() => {
         const arr: Week[] = [];
         for (let i = rangeStart; i <= rangeEnd; i++) {
-            arr.push(buildWeek(addWeeks(currentWeekStart, i)));
+            arr.push(buildWeek(toRawDate(addWeeks(toDateTime(currentWeekStart), i))));
         }
         return arr;
     }, [rangeStart, rangeEnd, currentWeekStart]);
@@ -198,10 +245,15 @@ export default function WeekMultiSelect({
     const selectedList = useMemo<Week[]>(() => {
         return Array.from(selected)
             .map((id) => {
-                const w = buildWeek(new Date(id));
+                var ls = id.split('/')
+                var rd:RawDate = {year:parseInt(ls[2]),
+                    month:parseInt(ls[1])-1,
+                    day:parseInt(ls[0])
+                }
+                const w = buildWeek(rd);
                 return { ...w, minimumhours: hoursMap[id] ?? null };
             })
-            .sort((a, b) => a.start.getTime() - b.start.getTime());
+            .sort((a, b) => rawdatesort(a.start, b.start));
     }, [selected, hoursMap]);
 
     const onChangeRef = useRef(onChange);
@@ -279,10 +331,10 @@ export default function WeekMultiSelect({
                                     >
                                         <div className="md:col-span-2">
                                             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                                                Week {isoWeekNumber(w.start)}
+                                                Week {isoWeekNumber(w.end)}
                                             </Label>
                                             <p>
-                                                {fmtDay(w.start)} - {w.start.getMonth() == w.end.getMonth() ? w.end.getDate() : fmtDay(w.end)}
+                                                {fmtDay(((x) => {return x.start})(w))} - {w.start.month == w.end.month ? w.end.day : fmtDay(w.end)}
                                             </p>
 
                                         </div>

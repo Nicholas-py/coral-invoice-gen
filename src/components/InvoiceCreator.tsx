@@ -14,34 +14,34 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import logo from '../coral.png'
-import WeekMultiSelect, { isoWeekNumber } from "./weekselect";
+import WeekMultiSelect, { isnewer, isnewerorequal, isoWeekNumber, pRawDate, RawDate, rawdatesort, toRawDate } from "./weekselect";
 import { SelectedWeek } from "./weekselect"
 import { table } from "console";
 
 const HOUR_TYPES = [
-  { value: "consult", label: "Consultation time", towardsmin: true },
-  { value: "train", label: "Training time or info session", towardsmin: true },
-  { value: "admin", label: "Admin time outside of prep/post", towardsmin: false },
+  { value: "consult", label: "Consultation time" },
+  { value: "train", label: "Training time or info session" },
+  { value: "admin", label: "Admin time outside of prep/post" },
 ] as const;
 
 type HourType = (typeof HOUR_TYPES)[number]["value"];
 
 type Row = {
   id: string;
-  date: string;
+  date: RawDate;
   type: HourType;
   minutes: string;
   notes: string;
 };
 
-function round2(n:number):number {
-  return Math.round(100*n)/100
+function round2(n: number): number {
+  return Math.round(100 * n) / 100
 }
 
 function newRow(): Row {
   return {
     id: crypto.randomUUID(),
-    date: new Date().toISOString().slice(0, 10),
+    date: toRawDate(new Date()),
     type: "consult",
     minutes: "30",
     notes: "",
@@ -52,18 +52,11 @@ function formatMoney(n: number) {
   return n.toLocaleString(undefined, { style: "currency", currency: "CAD" });
 }
 
-function showDate(d:Date):string {
-  return d.toLocaleDateString(undefined, { timeZone: 'UTC' })
-}
 
 export function InvoiceCreator() {
   const placeholdername = "Fiona Lake Waslander"
   const placeholderrate = "120"
   const placeholderaddress = "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada"
-  document.body.style.transform = "scale(1.25)";
-  document.body.style.transformOrigin = "top left";
-  document.body.style.width = "80%";   // 100 / 1.25
-  document.body.style.minHeight = "80vh";
 
 
   const [invoiceWeeks, setInvoiceWeeks] = useState<SelectedWeek[]>([]);
@@ -81,7 +74,6 @@ export function InvoiceCreator() {
     for (const r of rows) {
       const h = parseFloat(r.minutes) || 0;
       hours += h / 60;
-      amount += h;
     }
     amount = hours * rateNum
     return { hours, amount };
@@ -104,17 +96,17 @@ export function InvoiceCreator() {
     doc.setFontSize(28);
     doc.text("INVOICE", 40, 60);
 
-    var mindate = new Date(0);
+    var lastdate = {year:0,month:1,day:2}
     rows.forEach((row) => {
-      if (new Date(row.date) > mindate) {
-        mindate = new Date(row.date)
+      if (isnewer(row.date, lastdate)) {
+        lastdate = row.date
       }
     })
 
 
     doc.setFont("times", "normal");
     doc.setFontSize(11);
-    doc.text(`Date: ${showDate(mindate)}`, pageWidth - 40, 66, {
+    doc.text(`Date: ${pRawDate(lastdate)}`, pageWidth - 40, 66, {
       align: "right",
     });
     doc.text(`Rate: ${formatMoney(rateNum)}`, pageWidth - 40, 80, {
@@ -165,17 +157,16 @@ export function InvoiceCreator() {
     var datecount = 0
     var minhoursextra = 0
     invoiceWeeks.forEach((week) => {
-      doc.text('Week ' + isoWeekNumber(week.end) + ' (' + showDate(week.start) + ' - ' + showDate(week.end) + ')', 40, tabley + 10)
+      doc.text('Week ' + isoWeekNumber(week.end) + ' (' + pRawDate(week.start) + ' - ' + pRawDate(week.end) + ')', 40, tabley + 10)
       doc.text(`Minimum Guaranteed Hours: ${week.minimumhours}`, pageWidth - 40, tabley + 10, {
         align: "right",
       });
 
       var hours: Record<string, number> = { 'consult': 0, 'train': 0, 'admin': 0 }
       rows.forEach((row) => {
-        var date = new Date(row.date)
-        if (date >= week.start && date <= week.end) {
+        if (isnewerorequal(row.date, week.start) && isnewerorequal(week.end, row.date)) {
           datecount++;
-          hours[row.type] += (parseFloat(row.minutes)||0)/60;
+          hours[row.type] += (parseFloat(row.minutes) || 0) / 60;
         }
       })
 
@@ -183,16 +174,16 @@ export function InvoiceCreator() {
       hours['admin'] = round2(hours['admin'])
       hours['train'] = round2(hours['train'])
 
-      var tabledata = [["Consultation Time",hours['consult']], 
-        ["Admin time outside of prep/post",hours['admin']],
+      var tabledata = [["Consultation Time", hours['consult']],
+      ["Admin time outside of prep/post", hours['admin']],
       ["Training time or info session", hours['train']]]
 
-      var hoursum = hours['consult']+hours['admin']+hours['train']
+      var hoursum = hours['consult'] + hours['admin'] + hours['train']
 
-      if (hours['consult']+hours['train'] < week.minimumhours) {
-        tabledata.push(["Additional hours from minimum guarantee", week.minimumhours-(hours['consult']+hours['train'])])
-        minhoursextra += week.minimumhours-(hours['consult']+hours['train'])
-        hoursum += week.minimumhours-(hours['consult']+hours['train'])
+      if (hours['consult'] + hours['train'] < week.minimumhours) {
+        tabledata.push(["Additional hours from minimum guarantee", week.minimumhours - (hours['consult'] + hours['train'])])
+        minhoursextra += week.minimumhours - (hours['consult'] + hours['train'])
+        hoursum += week.minimumhours - (hours['consult'] + hours['train'])
       }
 
       autoTable(doc, {
@@ -211,7 +202,7 @@ export function InvoiceCreator() {
 
       const finalY = (doc as unknown as { lastAutoTable: { finalY: number } })
         .lastAutoTable.finalY;
-      doc.text(`Week ${isoWeekNumber(week.start)} total hours: ${hoursum}`,pageWidth-40, finalY+12, {"align":"right"})
+      doc.text(`Week ${isoWeekNumber(week.end)} total hours: ${hoursum}`, pageWidth - 40, finalY + 12, { "align": "right" })
       tabley = finalY + 30
     })
 
@@ -224,38 +215,38 @@ export function InvoiceCreator() {
       .lastAutoTable.finalY;
     doc.setFont("times", "bold");
     doc.setFontSize(12);
-    doc.text(`Total hours: ${Math.round(100*(totals.hours+minhoursextra))/100}`, pageWidth - 40, finalY + 50, {
+    doc.text(`Total hours: ${Math.round(100 * (totals.hours + minhoursextra)) / 100}`, pageWidth - 40, finalY + 50, {
       align: "right",
     });
     doc.setFontSize(16);
-    doc.text(`Total hours: ${formatMoney(totals.amount+minhoursextra*rateNum)}`, pageWidth - 40, finalY + 74, {
+    doc.text(`Total: ${formatMoney(totals.amount + minhoursextra * rateNum)}`, pageWidth - 40, finalY + 74, {
       align: "right",
     });
 
 
 
     doc.addPage();
-    rows.sort((x,y)=>{
-      const t1 = new Date(x.date).getTime();
-      const t2= new Date(y.date).getTime()
-      if (t1 > t2) return 1;
-      if (t1 < t2) return -1
-      return 0
+
+    doc.setFont("times", "bold");
+    doc.setFontSize(20);
+    doc.text("Details", 40, 60);
+
+
+    var sortrows = [...rows].sort((x, y) => {
+      return rawdatesort(x.date, y.date)
     })
-    console.log(rows)
-    var tabledata = rows.map((r) => {
-        const h = Math.round(parseFloat(r.minutes) * 100) / 100 || 0;
-        const t = HOUR_TYPES.find((x) => x.value === r.type);
-        const effectiveRate = rateNum;
-        return [
-          r.date,
-          t?.label ?? r.type,
-          r.notes,
-          h.toString(),
-        ];
-      })
+    var tabledata = sortrows.map((r) => {
+      const h = Math.round(parseFloat(r.minutes) * 100) / 100 || 0;
+      const t = HOUR_TYPES.find((x) => x.value === r.type);
+      return [
+        pRawDate(r.date),
+        t?.label ?? r.type,
+        r.notes,
+        h.toString(),
+      ];
+    })
     autoTable(doc, {
-      startY: 30,
+      startY: 80,
       head: [["Date", "Type", "Description", "Minutes"]],
       body: tabledata,
       styles: { font: "times", fontSize: 10, cellPadding: 6 },
@@ -268,12 +259,18 @@ export function InvoiceCreator() {
       },
     });
 
-    var datestring = `${mindate.getFullYear()}.${mindate.getMonth() < 10 ? "0" : ""}${mindate.getMonth()}.${mindate.getDate() < 10 ? "0" : ""}${mindate.getDate()}`
-    doc.save(`${datestring} ${name||placeholdername} Invoice.pdf`);
+    var datestring = pRawDate(lastdate)//`${mindate.getFullYear()}.${mindate.getMonth() < 10 ? "0" : ""}${mindate.getMonth()}.${mindate.getDate() < 10 ? "0" : ""}${mindate.getDate()}`
+    doc.save(`${datestring} ${name || placeholdername} Invoice.pdf`);
   };
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen bg-background text-foreground" style={{
+        transform: "scale(1.2)",
+        transformOrigin: "top left",
+        width: "80%",       // compensate so layout doesn't overflow
+        minHeight: "80vh",
+
+    }}>
       <div className="mx-auto max-w-5xl px-6 py-12">
         <header className="mb-10 border-b border-border pb-8">
           <img src={logo} width="100" />
@@ -364,8 +361,14 @@ export function InvoiceCreator() {
                       </Label>
                       <Input
                         type="date"
-                        value={row.date}
-                        onChange={(e) => updateRow(row.id, { date: e.target.value })}
+                        value={`${row.date.year}-${row.date.month+1 < 10?"0":""}${row.date.month+1}-${row.date.day < 10?"0":""}${row.date.day}`}
+                        onChange={(e) => {
+                          var ls = e.target.value.split('-');
+                          var nd:RawDate = {year:parseInt(ls[0]),
+                            month:parseInt(ls[1])-1,
+                            day:parseInt(ls[2])
+                          }
+                          updateRow(row.id, { date: nd })}}
                       />
                     </div>
                     <div className="md:col-span-3">
