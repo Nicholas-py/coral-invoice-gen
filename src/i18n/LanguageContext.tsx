@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, ReactNode } from "react";
-import { Language, translations, TranslationShape } from "./translations";
+import { Language, resolve, TranslationShape } from "./translations";
 
 interface LanguageContextValue {
   lang: Language;
@@ -17,7 +17,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     lang,
     setLang,
     toggle,
-    t: translations[lang] as TranslationShape,
+    t: resolve(lang),
   };
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
