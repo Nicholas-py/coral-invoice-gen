@@ -18,6 +18,7 @@ import WeekMultiSelect, { isnewer, isnewerorequal, isoWeekNumber, pRawDate, RawD
 import { SelectedWeek } from "./weekselect"
 import { table } from "console";
 import { translations } from "@/i18n/translations";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 const HOUR_TYPES = [
   { value: "consult", label: "Consultation time" },
@@ -55,9 +56,12 @@ function formatMoney(n: number) {
 
 
 export function InvoiceCreator() {
-  const placeholdername = "Fiona Lake Waslander"
+
+  const {langtext, lang, toggle} = useLanguage()
+
+  const placeholdername = langtext.details.namePlaceholder
   const placeholderrate = "120"
-  const placeholderaddress = "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada"
+  const placeholderaddress = langtext.details.addressPlaceholder
   
 
   const [invoiceWeeks, setInvoiceWeeks] = useState<SelectedWeek[]>([]);
@@ -276,10 +280,10 @@ export function InvoiceCreator() {
         <header className="mb-10 border-b border-border pb-8">
           <img src={logo} width="100" />
           <h1 className="mt-2 font-serif text-5xl font-bold tracking-tight">
-            Invoice Creator
+            {langtext.header.title}
           </h1>
           <p className="mt-3 text-muted-foreground">
-            For NPs - create an invoice automatically + download a PDF.
+            {langtext.header.subtitle}
           </p>
         </header>
 
@@ -294,7 +298,7 @@ export function InvoiceCreator() {
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="rate">Hourly rate (CAD)</Label>
+            <Label htmlFor="rate">{langtext.details.rate}</Label>
             <Input
               id="rate"
               type="number"
@@ -305,7 +309,7 @@ export function InvoiceCreator() {
             />
           </div>
           <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="addr">Address</Label>
+            <Label htmlFor="addr">{langtext.details.address}</Label>
             <Input
               id="billdress"
               value={billingaddress}

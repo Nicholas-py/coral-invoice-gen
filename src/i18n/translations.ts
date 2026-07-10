@@ -22,12 +22,10 @@ export const translations = {
                           fr: "Fiona Lake Waslander" },
     rate:               { en: "Hourly rate (CAD)",
                           fr: "Taux horaire (CAD)" },
-    ratePlaceholder:    { en: "120",
-                          fr: "120" },
     address:            { en: "Address",
                           fr: "Adresse" },
     addressPlaceholder: { en: "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada",
-                          fr: "1172 Rue Sherbrooke O, Montréal, QC H3A 1H6, Canada" },
+                          fr: "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada" },
   },
   weeks: {
     title:                   { en: "Weeks",
@@ -76,12 +74,7 @@ export const translations = {
   actions: {
     generate: { en: "Generate Invoice",
                 fr: "Générer la facture" },
-  },
-  footer: {
-    disclaimer: { en: "AI disclaimer - this page was generated using AI and edited by a human.",
-                  fr: "Avertissement IA - cette page a été générée par IA et éditée par un humain." },
-    copyright:  { en: "©2026 Nicholas Waslander",
-                  fr: "©2026 Nicholas Waslander" },
+  
   },
 } as const;
 

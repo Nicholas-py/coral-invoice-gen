@@ -5,7 +5,7 @@ interface LanguageContextValue {
   lang: Language;
   setLang: (l: Language) => void;
   toggle: () => void;
-  t: TranslationShape;
+  langtext: TranslationShape;
 }
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
@@ -17,7 +17,7 @@ export function LanguageProvider({ children }: { children: ReactNode }) {
     lang,
     setLang,
     toggle,
-    t: resolve(lang),
+    langtext: resolve(lang),
   };
   return <LanguageContext.Provider value={value}>{children}</LanguageContext.Provider>;
 }
