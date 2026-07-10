@@ -17,6 +17,7 @@ import logo from '../coral.png'
 import WeekMultiSelect, { isnewer, isnewerorequal, isoWeekNumber, pRawDate, RawDate, rawdatesort, toRawDate } from "./weekselect";
 import { SelectedWeek } from "./weekselect"
 import { table } from "console";
+import { translations } from "@/i18n/translations";
 
 const HOUR_TYPES = [
   { value: "consult", label: "Consultation time" },
@@ -57,7 +58,7 @@ export function InvoiceCreator() {
   const placeholdername = "Fiona Lake Waslander"
   const placeholderrate = "120"
   const placeholderaddress = "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada"
-
+  
 
   const [invoiceWeeks, setInvoiceWeeks] = useState<SelectedWeek[]>([]);
 
