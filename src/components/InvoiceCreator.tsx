@@ -17,8 +17,8 @@ import logo from '../coral.png'
 import WeekMultiSelect, { isnewer, isnewerorequal, isoWeekNumber, pRawDate, RawDate, rawdatesort, toRawDate } from "./weekselect";
 import { SelectedWeek } from "./weekselect"
 import { table } from "console";
-import { translations } from "@/i18n/translations";
-import { useLanguage } from "@/i18n/LanguageContext";
+import { translations } from "@/language/translations";
+import { useLanguage } from "@/language/LanguageContext";
 
 var HOUR_TYPES = [
   { value: "consult", label: "Consultation time" },

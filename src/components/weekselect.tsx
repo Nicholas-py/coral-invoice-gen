@@ -10,7 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
-import { useLanguage } from "@/i18n/LanguageContext";
+import { useLanguage } from "@/language/LanguageContext";
 
 // ---- types --------------------------------------------------------------
 interface Week {
