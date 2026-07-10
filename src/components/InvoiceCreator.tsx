@@ -20,7 +20,7 @@ import { table } from "console";
 import { translations } from "@/i18n/translations";
 import { useLanguage } from "@/i18n/LanguageContext";
 
-const HOUR_TYPES = [
+var HOUR_TYPES = [
   { value: "consult", label: "Consultation time" },
   { value: "train", label: "Training time or info session" },
   { value: "admin", label: "Admin time outside of prep/post" },
@@ -55,9 +55,11 @@ function formatMoney(n: number) {
 }
 
 
+
 export function InvoiceCreator() {
 
   const {langtext, lang, toggle} = useLanguage()
+  
 
   const placeholdername = langtext.details.namePlaceholder
   const placeholderrate = "120"
@@ -289,7 +291,7 @@ export function InvoiceCreator() {
 
         <section className="grid grid-cols-1 gap-6 rounded-2xl border border-border bg-card p-6 shadow-sm md:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="name">Your name</Label>
+            <Label htmlFor="name">{langtext.details.name}</Label>
             <Input
               id="name"
               value={name}
@@ -322,9 +324,9 @@ export function InvoiceCreator() {
         <section className="mt-10">
           <div className="mb-4 flex items-end justify-between">
             <div>
-              <h2 className="font-serif text-2xl font-semibold">Weeks</h2>
+              <h2 className="font-serif text-2xl font-semibold">{langtext.weeks.title}</h2>
               <p className="text-sm text-muted-foreground">
-                Select the weeks the invoice is for.
+                {langtext.weeks.subtitle}
               </p>
             </div>
           </div>
@@ -342,13 +344,13 @@ export function InvoiceCreator() {
         <section className="mt-10">
           <div className="mb-4 flex items-end justify-between">
             <div>
-              <h2 className="font-serif text-2xl font-semibold">Hours</h2>
+              <h2 className="font-serif text-2xl font-semibold">{langtext.hours.title}</h2>
               <p className="text-sm text-muted-foreground">
-                Add a row for each work session.
+                {langtext.hours.subtitle}
               </p>
             </div>
             <Button onClick={addRow} variant="outline">
-              <Plus className="mr-2 h-4 w-4" /> Add row
+              <Plus className="mr-2 h-4 w-4" /> {langtext.hours.addRow}
             </Button>
           </div>
 
@@ -362,7 +364,7 @@ export function InvoiceCreator() {
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
                     <div className="md:col-span-2">
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Date
+                        {langtext.hours.date}
                       </Label>
                       <Input
                         type="date"
@@ -378,7 +380,7 @@ export function InvoiceCreator() {
                     </div>
                     <div className="md:col-span-3">
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Type
+                        {langtext.hours.type}
                       </Label>
                       <Select
                         value={row.type}
@@ -390,7 +392,7 @@ export function InvoiceCreator() {
                         <SelectContent>
                           {HOUR_TYPES.map((t) => (
                             <SelectItem key={t.value} value={t.value}>
-                              {t.label}
+                              {langtext.hourTypes[t.value]}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -398,7 +400,7 @@ export function InvoiceCreator() {
                     </div>
                     <div className="md:col-span-1">
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Minutes
+                        {langtext.hours.minutes}
                       </Label>
                       <Input
                         type="number"
@@ -410,7 +412,7 @@ export function InvoiceCreator() {
                     </div>
                     <div className="md:col-span-5">
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                        Description
+                        {langtext.hours.description}
                       </Label>
                       <Textarea
                         rows={1}
@@ -440,7 +442,7 @@ export function InvoiceCreator() {
         <section className="mx-auto mt-10 flex w-full max-w-sm flex-col items-center gap-6 rounded-2xl border border-border bg-accent/40 p-6">
           <div className="text-left">
             <Button size="lg" onClick={generatePdf} className="mt-2">
-              <FileDown className="h-7 w-7" /> Generate Invoice
+              <FileDown className="h-7 w-7" /> {langtext.actions.generate}
             </Button>
           </div>
         </section>

@@ -10,6 +10,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { useLanguage } from "@/i18n/LanguageContext";
 
 // ---- types --------------------------------------------------------------
 interface Week {
@@ -152,6 +153,7 @@ export default function WeekMultiSelect({
     const currentWeekStart = useMemo(() => startOfWeek(today), [today]);
     const currentWeekId = weekId(currentWeekStart);
     
+      const {langtext, lang, toggle} = useLanguage()
 
 
     // range of weeks currently materialized, expressed as offsets from current week
@@ -314,7 +316,7 @@ export default function WeekMultiSelect({
                 >
                     {selectedList.length === 0 ? (
                         <span style={{ color: "#8a93a3", fontSize: 14 }}
-                        >Select weeks…</span>
+                        >{langtext.weeks.selectPlaceholder}</span>
                     ) : (
                         <>
                             {selectedList.map((w) => (
@@ -331,7 +333,7 @@ export default function WeekMultiSelect({
                                     >
                                         <div className="md:col-span-2">
                                             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                                                Week {isoWeekNumber(w.end)}
+                                                {langtext.weeks.week} {isoWeekNumber(w.end)}
                                             </Label>
                                             <p>
                                                 {fmtDay(((x) => {return x.start})(w))} - {w.start.month == w.end.month ? w.end.day : fmtDay(w.end)}
@@ -340,7 +342,7 @@ export default function WeekMultiSelect({
                                         </div>
                                         <div className="md:col-span-3">
                                             <Label className="text-xs uppercase tracking-wider text-muted-foreground">
-                                                Minimum Guaranteed Hours
+                                                {langtext.weeks.minimumHours}
                                             </Label>
                                             <Input
                                                 type="number"
@@ -402,7 +404,7 @@ export default function WeekMultiSelect({
                         }}
                     >
                         <span style={{ fontSize: 12, color: "#8a93a3", fontWeight: 600 }}>
-                            {selectedList.length} week{selectedList.length === 1 ? "" : "s"} selected
+                            {selectedList.length} {langtext.weeks.week.toLowerCase()}{selectedList.length === 1 ? "" : "s"} {langtext.weeks.selected}
                         </span>
                         {/* Jump to today button */}
                         <button
@@ -422,7 +424,7 @@ export default function WeekMultiSelect({
                             }}
                         >
                             <RotateCcw size={12} />
-                            Jump to today
+                            {langtext.weeks.jumpToToday}
                         </button>
                     </div>
 
@@ -486,9 +488,9 @@ export default function WeekMultiSelect({
                                                         color: "#1c2333",
                                                     }}
                                                 >
-                                                    Week {w.weekNumber} · {fmtDay(w.start)} - {fmtDay(w.end)}
+                                                    {langtext.weeks.week} {w.weekNumber} · {fmtDay(w.start)} - {fmtDay(w.end)}
                                                     {isCurrent && (
-                                                        <span style={{ color: "#52001d", fontWeight: 700 }}> · This week</span>
+                                                        <span style={{ color: "#52001d", fontWeight: 700 }}> · {langtext.weeks.thisWeek}</span>
                                                     )}
                                                 </span>
                                             </div>
@@ -512,9 +514,6 @@ export default function WeekMultiSelect({
                                 })}
                             </div>
                         ))}
-                        <div style={{ padding: "8px 12px", textAlign: "center", fontSize: 11, color: "#b7bdc7" }}>
-                            scroll for more weeks
-                        </div>
                     </div>
                 </div>
             )}

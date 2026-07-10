@@ -38,12 +38,12 @@ export const translations = {
                                fr: "Heures minimales garanties" },
     jumpToToday:             { en: "Jump to today",
                                fr: "Aller à aujourd'hui" },
-    weekLabel:               { en: "Week",
+    week:                    { en: "Week",
                                fr: "Semaine" },
-    weeksSelectedSingular:   { en: "week selected",
-                               fr: "semaine sélectionnée" },
-    weeksSelectedPlural:     { en: "weeks selected",
-                               fr: "semaines sélectionnées" },
+    selected:                { en: "selected",
+                               fr: "sélectionnée" },
+    thisWeek:                { en: "This week",
+                               fr: "Cette semaine" }
   },
   hours: {
     title:       { en: "Hours",
@@ -60,8 +60,6 @@ export const translations = {
                    fr: "Minutes" },
     description: { en: "Description",
                    fr: "Description" },
-    removeRow:   { en: "Remove row",
-                   fr: "Supprimer la ligne" },
   },
   hourTypes: {
     consult: { en: "Consultation time",
