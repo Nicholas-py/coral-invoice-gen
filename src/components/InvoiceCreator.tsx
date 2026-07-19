@@ -60,10 +60,7 @@ export function InvoiceCreator() {
 
   const {langtext, lang, toggle} = useLanguage()
   
-
-  const placeholdername = langtext.details.namePlaceholder
   const placeholderrate = "120"
-  const placeholderaddress = langtext.details.addressPlaceholder
   
 
   const [invoiceWeeks, setInvoiceWeeks] = useState<SelectedWeek[]>([]);
@@ -110,13 +107,18 @@ export function InvoiceCreator() {
       }
     })
 
+    const invoiceNumber:string = `${lastdate.day <= 9 ? "1" : ""}${lastdate.month <= 9 ? "1" : ""}${(name||'A').charCodeAt(0)%10}${lastdate.month}${lastdate.year%10}${lastdate.day}${Math.floor(Math.random()*10)}`;
 
     doc.setFont("times", "normal");
     doc.setFontSize(11);
-    doc.text(`Date: ${pRawDate(lastdate)}`, pageWidth - 40, 66, {
+    doc.text(`Invoice Number: ${invoiceNumber}`, pageWidth - 40, 66, {
       align: "right",
     });
-    doc.text(`Rate: ${formatMoney(rateNum)}`, pageWidth - 40, 80, {
+
+    doc.text(`Date: ${pRawDate(lastdate)}`, pageWidth - 40, 80, {
+      align: "right",
+    });
+    doc.text(`Rate: ${formatMoney(rateNum)}`, pageWidth - 40, 94, {
       align: "right",
     });
 
@@ -127,9 +129,9 @@ export function InvoiceCreator() {
     doc.text("FROM", 40, 110);
     doc.setTextColor(30, 20, 25);
     doc.setFontSize(12);
-    doc.text(name || placeholdername, 40, 126);
+    doc.text(name, 40, 126);
 
-    var ba = billingaddress || placeholderaddress
+    var ba = billingaddress
     if (ba.length < 32) {
       doc.text(ba, 40, 142);
     }
@@ -267,7 +269,7 @@ export function InvoiceCreator() {
     });
 
     var datestring = pRawDate(lastdate)//`${mindate.getFullYear()}.${mindate.getMonth() < 10 ? "0" : ""}${mindate.getMonth()}.${mindate.getDate() < 10 ? "0" : ""}${mindate.getDate()}`
-    doc.save(`${datestring} ${name || placeholdername} Invoice.pdf`);
+    doc.save(`${datestring} ${name} Invoice.pdf`);
   };
 
   return (
@@ -296,7 +298,7 @@ export function InvoiceCreator() {
               id="name"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder={placeholdername}
+              placeholder=""
             />
           </div>
           <div className="space-y-2">
@@ -316,7 +318,7 @@ export function InvoiceCreator() {
               id="billdress"
               value={billingaddress}
               onChange={(e) => setBillingAddress(e.target.value)}
-              placeholder={placeholderaddress}
+              placeholder=""
             />
           </div>
 

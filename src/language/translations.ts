@@ -18,14 +18,14 @@ export const translations = {
   details: {
     name:               { en: "Your name",
                           fr: "Votre nom" },
-    namePlaceholder:    { en: "Fiona Lake Waslander",
-                          fr: "Fiona Lake Waslander" },
+    namePlaceholder:    { en: "",
+                          fr: "" },
     rate:               { en: "Hourly rate (CAD)",
                           fr: "Taux horaire (CAD)" },
     address:            { en: "Address",
                           fr: "Adresse" },
-    addressPlaceholder: { en: "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada",
-                          fr: "1172 Sherbrooke St W, Montréal, QC H3A 1H6, Canada" },
+    addressPlaceholder: { en: "",
+                          fr: "" },
   },
   weeks: {
     title:                   { en: "Weeks",
